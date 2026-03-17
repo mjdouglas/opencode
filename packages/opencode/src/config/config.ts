@@ -1222,6 +1222,21 @@ export namespace Config {
             .describe("Timeout in milliseconds for model context protocol (MCP) requests"),
         })
         .optional(),
+      claudePlugins: z
+        .object({
+          enabled: z
+            .boolean()
+            .optional()
+            .describe(
+              "Enable loading Claude Code plugins from ~/.claude/. Defaults to true.",
+            ),
+          exclude: z
+            .array(z.string())
+            .optional()
+            .describe("List of Claude Code plugin names to exclude from loading"),
+        })
+        .optional()
+        .describe("Configuration for loading Claude Code plugins installed on the system"),
     })
     .strict()
     .meta({

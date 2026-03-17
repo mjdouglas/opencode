@@ -12,6 +12,7 @@ import { Session } from "../session"
 import { NamedError } from "@opencode-ai/util/error"
 import { CopilotAuthPlugin } from "./copilot"
 import { gitlabAuthPlugin as GitlabAuthPlugin } from "@gitlab/opencode-gitlab-auth"
+import { ClaudePlugins } from "../claude-plugins"
 
 export namespace Plugin {
   const log = Log.create({ service: "plugin" })
@@ -101,6 +102,43 @@ export namespace Plugin {
             }).toObject(),
           })
         })
+    }
+
+    // Load Claude Code plugins from ~/.claude/ if enabled
+    const claudePluginsConfig = config.claudePlugins
+    if (claudePluginsConfig?.enabled !== false) {
+      try {
+        const claudeResult = await ClaudePlugins.load({
+          exclude: claudePluginsConfig?.exclude,
+        })
+
+        // Merge Claude plugin MCP servers into config
+        if (Object.keys(claudeResult.mcp).length > 0) {
+          const currentConfig = await Config.get()
+          currentConfig.mcp = {
+            ...currentConfig.mcp,
+            ...claudeResult.mcp,
+          }
+        }
+
+        // Merge Claude plugin commands into config
+        if (Object.keys(claudeResult.commands).length > 0) {
+          const currentConfig = await Config.get()
+          currentConfig.command = {
+            ...currentConfig.command,
+            ...claudeResult.commands,
+          }
+        }
+
+        // Add Claude plugin hooks
+        hooks.push(...claudeResult.hooks)
+
+        if (claudeResult.pluginNames.length > 0) {
+          log.info("loaded Claude Code plugins", { plugins: claudeResult.pluginNames })
+        }
+      } catch (err) {
+        log.error("failed to load Claude Code plugins", { error: String(err) })
+      }
     }
 
     return {
